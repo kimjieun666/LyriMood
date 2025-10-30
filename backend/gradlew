@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# Minimal Gradle wrapper bootstrap script.
+# Gradle가 생성하는 공식 스크립트보다 간단하지만 동일하게 wrapper JAR을 실행합니다.
+
+DEFAULT_JVM_OPTS="-Xmx64m -Xms64m"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+CLASSPATH="$SCRIPT_DIR/gradle/wrapper/gradle-wrapper.jar"
+
+if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+  JAVA_CMD="$JAVA_HOME/bin/java"
+fi
+
+if [ -z "$JAVA_CMD" ] && command -v /usr/libexec/java_home >/dev/null 2>&1; then
+  JAVA_HOME="$(/usr/libexec/java_home 2>/dev/null || true)"
+  if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVA_CMD="$JAVA_HOME/bin/java"
+  fi
+fi
+
+# JetBrains Runtime 등 IDE 전용 JDK가 로컬 사용자 디렉터리에 설치된 경우를 대비한 보조 탐색
+if [ -z "$JAVA_CMD" ]; then
+  for CANDIDATE in "$HOME"/Library/Java/JavaVirtualMachines/*/Contents/Home/bin/java; do
+    if [ -x "$CANDIDATE" ]; then
+      JAVA_CMD="$CANDIDATE"
+      break
+    fi
+  done
+fi
+
+if [ -z "$JAVA_CMD" ] && command -v java >/dev/null 2>&1; then
+  JAVA_CMD="$(command -v java)"
+fi
+
+if [ -z "$JAVA_CMD" ] || [ ! -x "$JAVA_CMD" ]; then
+  echo "JAVA 실행 파일을 찾을 수 없습니다. JAVA_HOME을 확인하거나 JDK를 설치하세요." >&2
+  exit 1
+fi
+
+exec "$JAVA_CMD" $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS \
+  -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"

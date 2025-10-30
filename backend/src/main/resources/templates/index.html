@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>LyriMood AI 감정 분석</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0b1120;
+            color: #ced8ff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 12% 20%, rgba(59, 130, 246, 0.22), transparent 55%),
+                radial-gradient(circle at 78% 12%, rgba(124, 58, 237, 0.18), transparent 60%),
+                linear-gradient(150deg, #0b1120 0%, #0f172a 65%, #111827 100%);
+            display: flex;
+            justify-content: center;
+            padding: clamp(32px, 4vw, 72px) clamp(20px, 6vw, 96px);
+        }
+
+        main {
+            width: min(1080px, 100%);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(24px, 3vw, 36px);
+        }
+
+        header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .brand-mark {
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #7a8cc5;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(28px, 3vw, 34px);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        p.lead {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #98a9dc;
+        }
+
+        .nav-links {
+            display: inline-flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .link-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(16, 23, 42, 0.55);
+            color: inherit;
+            font-size: 13px;
+            text-decoration: none;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .link-nav:hover {
+            border-color: rgba(94, 234, 212, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: clamp(28px, 3vw, 40px);
+            align-items: stretch;
+        }
+
+        .panel {
+            background: rgba(17, 26, 46, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            border-radius: 20px;
+            padding: clamp(24px, 3vw, 32px);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            box-shadow: 0 28px 60px rgba(10, 15, 28, 0.35);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #7b8dc2;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(12, 19, 34, 0.65);
+            color: inherit;
+            padding: 14px 16px;
+            font-size: 14px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: rgba(59, 130, 246, 0.55);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        textarea {
+            min-height: 360px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        button {
+            border: none;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #0c1426;
+            background: linear-gradient(135deg, #60a5fa, #38bdf8);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 42px rgba(59, 130, 246, 0.25);
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .mood-label {
+            font-size: clamp(24px, 2.5vw, 32px);
+            font-weight: 600;
+        }
+
+        .result-body {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .meta-item {
+            padding: 12px 16px;
+            border-radius: 14px;
+            background: rgba(18, 27, 45, 0.82);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        .meta-label {
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #7081b2;
+            margin-bottom: 6px;
+        }
+
+        .meta-value {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.28);
+            color: #dce6ff;
+        }
+
+        .highlights {
+            display: grid;
+            gap: 10px;
+        }
+
+        .highlight {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(19, 28, 46, 0.82);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        pre.lyrics {
+            margin: 0;
+            padding: 18px;
+            border-radius: 16px;
+            background: rgba(10, 16, 30, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            font-family: 'Inter', monospace;
+            font-size: 13px;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        .placeholder {
+            color: #6c7ca7;
+            font-size: 13px;
+        }
+
+        .error {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(220, 38, 38, 0.12);
+            color: #fca5a5;
+            border: 1px solid rgba(220, 38, 38, 0.26);
+            font-size: 13px;
+        }
+
+        @media (max-width: 760px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .content {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .result-body {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .nav-links {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div class="brand">
+            <span class="brand-mark">LyriMood · Mood Insights</span>
+            <h1>LyriMood</h1>
+            <p class="lead">곡 제목 · 아티스트 · 가사를 입력하면 감정 점수와 핵심 근거를 AI가 분석합니다.</p>
+        </div>
+        <div class="nav-links">
+            <a class="link-nav" href="/logs">분석 로그</a>
+            <a class="link-nav" href="https://github.com/lyrimood" target="_blank" rel="noopener">GitHub</a>
+        </div>
+    </header>
+
+    <div class="content">
+        <section class="panel">
+            <form id="analyzeForm">
+                <div>
+                    <label for="title">곡 제목</label>
+                    <input id="title" name="title" type="text" placeholder="곡 제목을 입력하세요." required>
+                </div>
+                <div>
+                    <label for="artist">아티스트</label>
+                    <input id="artist" name="artist" type="text" placeholder="아티스트 명을 입력하세요." required>
+                </div>
+                <div>
+                    <label for="lyrics">가사</label>
+                    <textarea id="lyrics" name="lyrics" placeholder="가사를 입력하세요." required></textarea>
+                </div>
+                <button id="submitBtn" type="submit">분석 시작</button>
+            </form>
+        </section>
+
+        <section class="panel" id="resultPanel">
+            <div class="placeholder" id="placeholder">분석 결과가 여기에 표시됩니다.</div>
+            <div id="errorBox" class="error" style="display:none;"></div>
+            <div id="resultContent" style="display:none; gap:20px; flex-direction:column;">
+                <div class="result-header">
+                    <div>
+                        <div class="mood-label" id="moodLabel">-</div>
+                        <div style="margin-top:6px;color:#9aaad8;font-size:13px;" id="songMeta">-</div>
+                    </div>
+                    <div style="text-align:right;font-size:12px;color:#6f7fa8;" id="timestamp">-</div>
+                </div>
+
+                <div class="result-body">
+                    <div class="meta">
+                    <div class="meta-item">
+                        <div class="meta-label">Valence</div>
+                        <div class="meta-value" id="valenceValue">-</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">Arousal</div>
+                        <div class="meta-value" id="arousalValue">-</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">장르</div>
+                        <div class="meta-value" id="genreInfo">-</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">Tempo</div>
+                        <div class="meta-value" id="tempoInfo">-</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">Key</div>
+                        <div class="meta-value" id="keyInfo">-</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">Mood</div>
+                        <div class="meta-value" id="moodInfo">-</div>
+                    </div>
+                </div>
+
+                    <div>
+                        <div class="meta-label" style="margin-bottom:8px;">태그</div>
+                        <div class="tags" id="tagList"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="meta-label" style="margin-bottom:8px;">분석 근거</div>
+                    <div class="highlights" id="highlightList"></div>
+                </div>
+
+                <div>
+                    <div class="meta-label" style="margin-bottom:8px;">가사</div>
+                    <pre class="lyrics" id="lyricsBox"></pre>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer style="margin-top:32px;text-align:center;color:#6c7ca7;font-size:12px;">
+        LyriMood · Mood-driven Music Insights
+    </footer>
+</main>
+
+<script>
+    const form = document.getElementById('analyzeForm');
+    const button = document.getElementById('submitBtn');
+    const placeholder = document.getElementById('placeholder');
+    const errorBox = document.getElementById('errorBox');
+    const result = document.getElementById('resultContent');
+
+    const setLoading = (loading) => {
+        button.disabled = loading;
+        button.textContent = loading ? '분석 중…' : '분석 시작';
+    };
+
+    const formatDecimal = (value) => Number.isFinite(value) ? Number(value).toFixed(3) : '-';
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const payload = Object.fromEntries(new FormData(form).entries());
+        setLoading(true);
+        errorBox.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/mood/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ message: '분석 중 오류가 발생했습니다.' }));
+                throw new Error(error.message || '분석 중 오류가 발생했습니다.');
+            }
+
+            const data = await response.json();
+
+            placeholder.style.display = 'none';
+            result.style.display = 'flex';
+
+            document.getElementById('moodLabel').textContent = data.label || '-';
+            document.getElementById('songMeta').textContent = `${data.title ?? '-'} · ${data.artist ?? '-'}`;
+            document.getElementById('timestamp').textContent = new Intl.DateTimeFormat('ko-KR', {
+                hour: '2-digit', minute: '2-digit'
+            }).format(new Date());
+
+            document.getElementById('valenceValue').textContent = formatDecimal(data.valence);
+            document.getElementById('arousalValue').textContent = formatDecimal(data.arousal);
+            const { genres, releaseDate, tempo, key, mood } = data;
+            document.getElementById('genreInfo').textContent = (Array.isArray(genres) && genres.length)
+                ? genres.join(', ')
+                : '-';
+            document.getElementById('tempoInfo').textContent = tempo != null ? formatDecimal(tempo) : '-';
+            document.getElementById('keyInfo').textContent = key || '-';
+            document.getElementById('moodInfo').textContent = mood || '-';
+
+            const tagList = document.getElementById('tagList');
+            tagList.innerHTML = '';
+            (data.tags || [])
+                .filter(tag => tag && tag.toLowerCase() !== (data.title || '').toLowerCase())
+                .filter(tag => tag.toLowerCase() !== (data.artist || '').toLowerCase())
+                .forEach(tag => {
+                    const chip = document.createElement('span');
+                    chip.className = 'tag';
+                    chip.textContent = tag;
+                    tagList.appendChild(chip);
+                });
+            if (!tagList.childElementCount) {
+                tagList.innerHTML = '<span class="placeholder">태그 없음</span>';
+            }
+
+            const highlightList = document.getElementById('highlightList');
+            highlightList.innerHTML = '';
+            (data.highlights || []).forEach(text => {
+                const item = document.createElement('div');
+                item.className = 'highlight';
+                item.textContent = text;
+                highlightList.appendChild(item);
+            });
+            if (releaseDate) {
+                const releaseItem = document.createElement('div');
+                releaseItem.className = 'highlight';
+                releaseItem.textContent = `Release: ${releaseDate}`;
+                highlightList.appendChild(releaseItem);
+            }
+            if (!highlightList.childElementCount) {
+                highlightList.innerHTML = '<div class="placeholder">근거가 제공되지 않았습니다.</div>';
+            }
+
+            document.getElementById('lyricsBox').textContent = data.lyrics || '가사 정보를 불러오지 못했습니다.';
+        } catch (err) {
+            result.style.display = 'none';
+            placeholder.style.display = 'none';
+            errorBox.style.display = 'block';
+            errorBox.textContent = err.message;
+        } finally {
+            setLoading(false);
+        }
+    });
+</script>
+</body>
+</html>

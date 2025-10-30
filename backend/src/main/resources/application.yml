@@ -1,0 +1,62 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:lyrimood;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+external:
+  language:
+    base-url: ${LIBRETRANSLATE_URL:https://libretranslate.com}
+    timeout: ${EXTERNAL_LANGUAGE_TIMEOUT:PT23S}
+    max-attempts: ${EXTERNAL_LANGUAGE_MAX_ATTEMPTS:2}
+    backoff: ${EXTERNAL_LANGUAGE_BACKOFF:PT0.5S}
+    rate-limit-for-period: ${EXTERNAL_LANGUAGE_RATE_LIMIT:510}
+    rate-limit-refresh-period: ${EXTERNAL_LANGUAGE_RATE_REFRESH:PT1S}
+    api-key-header: ${EXTERNAL_LANGUAGE_API_KEY_HEADER:}
+    api-key-value: ${EXTERNAL_LANGUAGE_API_KEY_VALUE:}
+  musicbrainz:
+    base-url: ${MUSICBRAINZ_BASE_URL:https://musicbrainz.org}
+    timeout: ${MUSICBRAINZ_TIMEOUT:PT10S}
+    max-attempts: ${MUSICBRAINZ_MAX_ATTEMPTS:2}
+    backoff: ${MUSICBRAINZ_BACKOFF:PT0.5S}
+    rate-limit-for-period: ${MUSICBRAINZ_RATE_LIMIT:50}
+    rate-limit-refresh-period: ${MUSICBRAINZ_RATE_REFRESH:PT1S}
+  gemini:
+    base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+    timeout: ${GEMINI_TIMEOUT:PT15S}
+    max-attempts: ${GEMINI_MAX_ATTEMPTS:2}
+    backoff: ${GEMINI_BACKOFF:PT0.5S}
+    rate-limit-for-period: ${GEMINI_RATE_LIMIT:20}
+    rate-limit-refresh-period: ${GEMINI_RATE_REFRESH:PT1S}
+#    api-key-value: ${GEMINI_API_KEY:}
+    api-key-value: AIzaSyAdqgYx5zDpOr2sC7ZmfpWyu9ooKatEfgs
+    model: ${GEMINI_MODEL:gemini-2.5-flash}
+  detectlanguage:
+    base-url: ${DETECTLANGUAGE_BASE_URL:https://ws.detectlanguage.com/0.2}
+    timeout: ${DETECTLANGUAGE_TIMEOUT:PT5S}
+    max-attempts: ${DETECTLANGUAGE_MAX_ATTEMPTS:2}
+    backoff: ${DETECTLANGUAGE_BACKOFF:PT0.3S}
+    rate-limit-for-period: ${DETECTLANGUAGE_RATE_LIMIT:50}
+    rate-limit-refresh-period: ${DETECTLANGUAGE_RATE_REFRESH:PT1S}
+    api-key-header: Authorization
+    #api-key-value: ${DETECTLANGUAGE_API_KEY:}
+    api-key-value: a988b514ce957e864be23e62e3929b46
+  acousticbrainz:
+    base-url: ${ACOUSTICBRAINZ_BASE_URL:https://acousticbrainz.org}
+    timeout: ${ACOUSTICBRAINZ_TIMEOUT:PT10S}
+    max-attempts: ${ACOUSTICBRAINZ_MAX_ATTEMPTS:2}
+    backoff: ${ACOUSTICBRAINZ_BACKOFF:PT0.5S}
+    rate-limit-for-period: ${ACOUSTICBRAINZ_RATE_LIMIT:20}
+    rate-limit-refresh-period: ${ACOUSTICBRAINZ_RATE_REFRESH:PT1S}

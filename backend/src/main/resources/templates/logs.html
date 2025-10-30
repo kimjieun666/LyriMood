@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>분석 로그 · LyriMood</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0b1120;
+            color: #ced8ff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 10% 15%, rgba(59, 130, 246, 0.22), transparent 55%),
+                radial-gradient(circle at 75% 8%, rgba(124, 58, 237, 0.18), transparent 60%),
+                linear-gradient(160deg, #0b1120 0%, #0f172a 65%, #111827 100%);
+            display: flex;
+            justify-content: center;
+            padding: clamp(32px, 4vw, 72px) clamp(20px, 6vw, 96px);
+        }
+
+        main {
+            width: min(1080px, 100%);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(24px, 3vw, 36px);
+        }
+
+        header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .brand-mark {
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #7a8cc5;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(28px, 3vw, 34px);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        p.lead {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #98a9dc;
+        }
+
+        .nav-links {
+            display: inline-flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .link-nav {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(16, 23, 42, 0.55);
+            color: inherit;
+            font-size: 13px;
+            text-decoration: none;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .link-nav:hover {
+            border-color: rgba(94, 234, 212, 0.45);
+            transform: translateY(-1px);
+        }
+
+        form.search {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            border-radius: 14px;
+            padding: 12px 16px;
+        }
+
+        form.search input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: inherit;
+            font-size: 14px;
+        }
+
+        form.search input:focus {
+            outline: none;
+        }
+
+        form.search button {
+            border: none;
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0b1120;
+            background: linear-gradient(135deg, #60a5fa, #38bdf8);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        form.search button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(59, 130, 246, 0.22);
+        }
+
+        .log-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .log-card {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 18px 20px;
+            border-radius: 16px;
+            background: rgba(17, 26, 46, 0.82);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            backdrop-filter: blur(14px);
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .log-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .header-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            font-size: 12px;
+            color: #7c8db5;
+        }
+
+        .song-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .song-artist {
+            margin: 2px 0 0;
+            font-size: 13px;
+            color: #8fa2dc;
+        }
+
+        .mood-badge {
+            align-self: flex-start;
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            background: rgba(59, 130, 246, 0.18);
+            font-size: 12px;
+            font-weight: 600;
+            color: #dbe5ff;
+        }
+
+        .metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .metric-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.18);
+            border: 1px solid rgba(59, 130, 246, 0.26);
+            color: #dbe5ff;
+        }
+
+        .metric-chip span {
+            font-weight: 600;
+            color: #e0e7ff;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .tag {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 999px;
+            background: rgba(124, 58, 237, 0.16);
+            border: 1px solid rgba(124, 58, 237, 0.24);
+            color: #d8b4fe;
+        }
+
+        .detail-btn {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(59, 130, 246, 0.12);
+            color: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .detail-btn:hover {
+            border-color: rgba(94, 234, 212, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .log-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 12px;
+            color: #7c8db5;
+        }
+
+        .log-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .empty {
+            padding: 48px;
+            text-align: center;
+            border-radius: 16px;
+            border: 1px dashed rgba(148, 163, 184, 0.18);
+            background: rgba(15, 23, 42, 0.45);
+            color: #7a8cc5;
+        }
+
+        footer {
+            display: flex;
+            justify-content: center;
+            color: #6c7ca7;
+            font-size: 12px;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(8, 11, 20, 0.7);
+            backdrop-filter: blur(6px);
+        }
+
+        .modal-panel {
+            position: relative;
+            width: min(640px, 92vw);
+            max-height: 80vh;
+            overflow-y: auto;
+            background: rgba(17, 26, 46, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 28px 64px rgba(9, 11, 22, 0.4);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            border: none;
+            background: rgba(59, 130, 246, 0.18);
+            color: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .modal-lyrics {
+            background: rgba(12, 19, 34, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            padding: 18px;
+            font-family: 'Inter', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 40vh;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            color: #8fa0d5;
+            margin: 18px 0 0;
+        }
+
+        .detail-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(19, 28, 48, 0.9);
+            border-radius: 999px;
+            padding: 6px 10px;
+        }
+
+        .insight-meta {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+            padding: 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(13, 21, 37, 0.8);
+        }
+
+        .meta-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-label {
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            color: #8fa0d5;
+            text-transform: uppercase;
+        }
+
+        .meta-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e4e9ff;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+
+        .analysis-sections {
+            display: grid;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .analysis-item {
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(10, 16, 30, 0.78);
+            padding: 16px 18px;
+        }
+
+        .analysis-title {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #9fb3fb;
+            margin-bottom: 6px;
+        }
+
+        .analysis-body {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #cdd7ff;
+            white-space: pre-wrap;
+        }
+
+        @media (max-width: 720px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .nav-links {
+                width: 100%;
+            }
+            .log-card {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .log-meta {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div class="brand">
+            <span class="brand-mark">LyriMood · Logs</span>
+            <h1>분석 기록</h1>
+            <p class="lead">감정 분석 결과는 최근 20건까지만 확인할 수 있습니다.</p>
+        </div>
+        <div class="nav-links">
+            <a class="link-nav" href="/">← LyriMood</a>
+            <a class="link-nav" href="https://github.com/lyrimood" target="_blank" rel="noopener">GitHub</a>
+        </div>
+    </header>
+
+    <form class="search" action="/logs" method="get">
+        <span style="font-size:16px;">🔍</span>
+        <input type="text" name="query" placeholder="곡 제목, 아티스트, 태그로 검색" th:value="${query}">
+        <button type="submit">검색</button>
+    </form>
+
+    <section class="log-list" th:if="${logs}">
+        <div class="log-card" th:each="log : ${logs}">
+            <div class="log-header">
+                <div class="log-info">
+                    <p class="song-title" th:text="${log.title}"></p>
+                    <p class="song-artist" th:text="${log.artist}"></p>
+                </div>
+                <div class="header-meta">
+                    <span th:text="${#temporals.format(log.createdAt, 'yyyy.MM.dd HH:mm')}"></span>
+                    <span th:text="${log.lang != null ? log.lang.toUpperCase() : '-'}"></span>
+                    <button type="button"
+                            class="detail-btn"
+                            th:attr="data-detail=${'detail-' + log.id},
+                                     data-title=${log.title},
+                                     data-artist=${log.artist},
+                                     data-label=${log.label},
+                                     data-valence=${#numbers.formatDecimal(log.valence, 1, 3)},
+                                     data-arousal=${#numbers.formatDecimal(log.arousal, 1, 3)},
+                                     data-release=${log.releaseDate},
+                                     data-release-country=${log.releaseCountry},
+                                     data-key=${log.acousticKey},
+                                     data-tempo=${log.acousticTempo},
+                                     data-mood=${log.acousticMood},
+                                     data-lang=${log.lang},
+                                      data-profane=${log.profane ? 'Explicit' : 'Clean'},
+                                      data-genres=${log.genres != null && !log.genres.isEmpty() ? T(java.lang.String).join(', ', log.genres) : ''},
+                                      data-highlights=${log.highlights != null && !log.highlights.isEmpty() ? T(java.lang.String).join('\n', log.highlights) : ''},
+                                      data-lyrics=${log.lyrics != null ? log.lyrics : ''}">
+                        자세히 보기
+                    </button>
+                </div>
+            </div>
+            <span class="mood-badge" th:text="${log.label}"></span>
+
+                <div class="metrics">
+                    <span class="metric-chip">Val <span th:text="${#numbers.formatDecimal(log.valence, 1, 3)}"></span></span>
+                    <span class="metric-chip">Aro <span th:text="${#numbers.formatDecimal(log.arousal, 1, 3)}"></span></span>
+                    <span class="metric-chip">Tempo <span th:text="${log.acousticTempo != null ? #numbers.formatDecimal(log.acousticTempo, 1, 1) : '-'}"></span></span>
+                    <span class="metric-chip">Key <span th:text="${log.acousticKey != null ? log.acousticKey : '-'}"></span></span>
+                    <span class="metric-chip">Mood <span th:text="${log.acousticMood != null ? log.acousticMood : '-'}"></span></span>
+                    <span class="metric-chip" th:text="${log.profane ? '🔞 Explicit' : '✓ Clean'}"></span>
+                </div>
+
+                <div class="tags" th:if="${log.tags != null and !log.tags.isEmpty()}">
+                    <span class="tag" th:each="tag : ${log.tags}" th:text="${tag}"></span>
+                </div>
+
+                <div class="tags" th:if="${log.genres != null and !log.genres.isEmpty()}">
+                    <span class="tag" th:each="genre : ${log.genres}" th:text="${genre}"></span>
+                </div>
+
+                <div class="detail-data" th:attr="id=${'detail-' + log.id}" style="display:none;">
+                    <div class="d-genres">
+                        <span class="d-genre" th:each="g : ${log.genres}" th:text="${g}"></span>
+                    </div>
+                    <div class="d-release" th:text="${log.releaseDate}"></div>
+                    <div class="d-key" th:text="${log.acousticKey}"></div>
+                    <div class="d-tempo" th:text="${log.acousticTempo}"></div>
+                    <div class="d-mood" th:text="${log.acousticMood}"></div>
+                    <div class="d-highlights">
+                        <span class="d-item" th:each="h : ${log.highlights}" th:text="${h}"></span>
+                    </div>
+                    <pre class="d-lyrics" th:text="${log.lyrics}"></pre>
+                </div>
+            </div>
+
+            <div class="log-meta">
+                <span th:if="${log.releaseDate != null}">📀 <span th:text="${log.releaseDate}"></span></span>
+                <span th:if="${log.releaseCountry != null}">📍 <span th:text="${log.releaseCountry}"></span></span>
+            </div>
+        </div>
+    </section>
+
+    <div class="empty" th:if="${logs == null or #lists.isEmpty(logs)}">
+        최근 분석 로그가 없습니다.
+    </div>
+
+    <footer>LyriMood · Mood-driven Music Insights</footer>
+</main>
+
+<div class="modal" id="detailModal" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel">
+        <button type="button" class="modal-close" aria-label="닫기">×</button>
+        <div>
+            <h2 style="margin:0;font-size:20px;" id="modalTitle">-</h2>
+            <p style="margin:6px 0 0;color:#9aaad8;font-size:13px;" id="modalArtist">-</p>
+        </div>
+        <div class="detail-meta">
+            <span>🪄 <strong id="modalLabel" style="color:#e4e9ff;">-</strong></span>
+            <span>😊 Val <strong id="modalValence" style="color:#e4e9ff;">-</strong></span>
+            <span>⚡ Aro <strong id="modalArousal" style="color:#e4e9ff;">-</strong></span>
+            <span>🎹 <strong id="modalKey" style="color:#e4e9ff;">-</strong></span>
+            <span>⏱️ <strong id="modalTempo" style="color:#e4e9ff;">-</strong></span>
+            <span>🎭 <strong id="modalAcousticMood" style="color:#e4e9ff;">-</strong></span>
+            <span>📀 <strong id="modalRelease" style="color:#e4e9ff;">-</strong></span>
+            <span>🚨 <strong id="modalProfane" style="color:#e4e9ff;">-</strong></span>
+        </div>
+        <div class="insight-meta">
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <span class="meta-label">분석된 무드</span>
+                    <span class="meta-value" id="metaMood">-</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">긍정 결과</span>
+                    <span class="meta-value" id="metaPositive">-</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">부정 결과</span>
+                    <span class="meta-value" id="metaNegative">-</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">장르</span>
+                    <span class="meta-value" id="metaGenres">-</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">발매 정보</span>
+                    <span class="meta-value" id="metaReleaseInfo">-</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">가사 언어</span>
+                    <span class="meta-value" id="metaLanguage">-</span>
+                </div>
+            </div>
+        </div>
+        <div class="analysis-sections">
+            <div class="analysis-item">
+                <span class="analysis-title">감정 해석</span>
+                <p class="analysis-body" id="analysisEmotion">-</p>
+            </div>
+            <div class="analysis-item">
+                <span class="analysis-title">AI 요약</span>
+                <p class="analysis-body" id="analysisSummary">-</p>
+            </div>
+            <div class="analysis-item">
+                <span class="analysis-title">긍정 표현 해석</span>
+                <p class="analysis-body" id="analysisPositive">-</p>
+            </div>
+            <div class="analysis-item">
+                <span class="analysis-title">부정 표현 해석</span>
+                <p class="analysis-body" id="analysisNegative">-</p>
+            </div>
+        </div>
+        <div style="margin-top:20px;">
+            <h3 style="margin:0 0 8px;color:#9fb3fb;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;">가사</h3>
+            <pre class="modal-lyrics" id="modalLyrics"></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('detailModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalArtist = document.getElementById('modalArtist');
+    const modalLabel = document.getElementById('modalLabel');
+    const modalValence = document.getElementById('modalValence');
+    const modalArousal = document.getElementById('modalArousal');
+    const modalKey = document.getElementById('modalKey');
+    const modalTempo = document.getElementById('modalTempo');
+    const modalAcousticMood = document.getElementById('modalAcousticMood');
+    const modalRelease = document.getElementById('modalRelease');
+    const modalProfane = document.getElementById('modalProfane');
+    const modalLyrics = document.getElementById('modalLyrics');
+    const metaMood = document.getElementById('metaMood');
+    const metaPositive = document.getElementById('metaPositive');
+    const metaNegative = document.getElementById('metaNegative');
+    const metaGenres = document.getElementById('metaGenres');
+    const metaReleaseInfo = document.getElementById('metaReleaseInfo');
+    const metaLanguage = document.getElementById('metaLanguage');
+    const analysisEmotion = document.getElementById('analysisEmotion');
+    const analysisSummary = document.getElementById('analysisSummary');
+    const analysisPositive = document.getElementById('analysisPositive');
+    const analysisNegative = document.getElementById('analysisNegative');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
+    modal.querySelector('.modal-close').addEventListener('click', closeModal);
+    modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+
+    const splitDataset = (value, delimiter) => {
+        if (!value) {
+            return [];
+        }
+        return value.split(delimiter).map(item => item.trim()).filter(Boolean);
+    };
+
+    const normalizeLanguageText = (text) => {
+        if (!text) {
+            return '';
+        }
+        return text
+            .replace(/^주요 언어는\s*/u, '')
+            .replace(/로 추정됩니다\.?$/u, '')
+            .trim();
+    };
+
+    document.querySelectorAll('.detail-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const detailId = button.dataset.detail;
+            const detailNode = detailId ? document.getElementById(detailId) : null;
+
+            modalTitle.textContent = button.dataset.title || '-';
+            modalArtist.textContent = button.dataset.artist || '-';
+            modalLabel.textContent = button.dataset.label || '-';
+            modalValence.textContent = button.dataset.valence || '-';
+            modalArousal.textContent = button.dataset.arousal || '-';
+            metaMood.textContent = button.dataset.label || '-';
+            let genreItems = splitDataset(button.dataset.genres, ',');
+            const nodeGenres = detailNode
+                ? Array.from(detailNode.querySelectorAll('.d-genres .d-genre'))
+                    .map(node => node.textContent.trim())
+                    .filter(Boolean)
+                : [];
+            if (nodeGenres.length) {
+                genreItems = nodeGenres;
+            }
+            metaGenres.textContent = genreItems.length ? genreItems.join(', ') : '-';
+
+            const keyValue = button.dataset.key && button.dataset.key !== 'null'
+                ? button.dataset.key
+                : (detailNode?.querySelector('.d-key')?.textContent.trim() || '');
+            modalKey.textContent = keyValue && keyValue !== '' ? keyValue : '-';
+
+            const tempoValue = button.dataset.tempo && button.dataset.tempo !== 'null'
+                ? button.dataset.tempo
+                : (detailNode?.querySelector('.d-tempo')?.textContent.trim() || '');
+            modalTempo.textContent = tempoValue && tempoValue !== '' ? tempoValue : '-';
+
+            const moodValue = button.dataset.mood && button.dataset.mood !== 'null'
+                ? button.dataset.mood
+                : (detailNode?.querySelector('.d-mood')?.textContent.trim() || '');
+            modalAcousticMood.textContent = moodValue && moodValue !== '' ? moodValue : '-';
+
+            const releaseNode = detailNode?.querySelector('.d-release');
+            const releaseValue = button.dataset.release && button.dataset.release !== 'null'
+                ? button.dataset.release
+                : releaseNode && releaseNode.textContent.trim();
+            modalRelease.textContent = releaseValue && releaseValue !== '' ? releaseValue : '-';
+            modalProfane.textContent = button.dataset.profane || '-';
+
+            const highlightTexts = [];
+            if (detailNode) {
+                detailNode.querySelectorAll('.d-highlights .d-item').forEach(node => {
+                    const text = node.textContent.trim();
+                    if (text) {
+                        highlightTexts.push(text);
+                    }
+                });
+            }
+            if (!highlightTexts.length) {
+                highlightTexts.push(...splitDataset(button.dataset.highlights, '\n'));
+            }
+
+            let emotion = '';
+            let summary = '';
+            let positiveInfo = '';
+            let negativeInfo = '';
+            let languageInfo = '';
+            let releaseInfo = '';
+
+            highlightTexts.forEach(text => {
+                if (text.startsWith('감정 해석:')) {
+                    emotion = text.replace('감정 해석:', '').trim();
+                } else if (text.startsWith('AI 요약:')) {
+                    summary = text.replace('AI 요약:', '').trim();
+                } else if (text.startsWith('밝은 분위기를 만든 표현:')) {
+                    positiveInfo = text.replace('밝은 분위기를 만든 표현:', '').trim();
+                } else if (text.startsWith('분위기를 가라앉힌 표현:')) {
+                    negativeInfo = text.replace('분위기를 가라앉힌 표현:', '').trim();
+                } else if (text.startsWith('주요 언어는')) {
+                    languageInfo = text.trim();
+                } else if (text.startsWith('발매 정보:')) {
+                    releaseInfo = text.replace('발매 정보:', '').trim();
+                }
+            });
+
+            const applyText = (element, value, fallback) => {
+                element.textContent = value && value.length ? value : fallback;
+            };
+
+            applyText(analysisEmotion, emotion, '감정 해석 정보를 가져오지 못했습니다.');
+            applyText(analysisSummary, summary, 'AI 요약 정보를 가져오지 못했습니다.');
+            applyText(analysisPositive, positiveInfo, '긍정적으로 평가된 표현이 없습니다.');
+            applyText(analysisNegative, negativeInfo, '부정적으로 평가된 표현이 없습니다.');
+
+            metaPositive.textContent = positiveInfo && positiveInfo.length ? positiveInfo : '근거 없음';
+            metaNegative.textContent = negativeInfo && negativeInfo.length ? negativeInfo : '근거 없음';
+            const datasetLang = button.dataset.lang || '';
+            const datasetReleaseCountry = button.dataset.releaseCountry || '';
+
+            metaReleaseInfo.textContent = releaseInfo && releaseInfo.length
+                    ? releaseInfo
+                    : (() => {
+                        const pieces = [];
+                        if (modalRelease.textContent && modalRelease.textContent !== '-') {
+                            pieces.push(modalRelease.textContent);
+                        }
+                        if (datasetReleaseCountry && datasetReleaseCountry !== 'null') {
+                            pieces.push(datasetReleaseCountry.toUpperCase());
+                        }
+                        return pieces.length ? pieces.join(' · ') : '정보 없음';
+                    })();
+            const formattedLanguage = languageInfo && languageInfo.length
+                    ? normalizeLanguageText(languageInfo)
+                    : (datasetLang && datasetLang !== 'null' ? datasetLang.toUpperCase() : '');
+            metaLanguage.textContent = formattedLanguage && formattedLanguage.length ? formattedLanguage : '정보 없음';
+
+            const lyricsNode = detailNode?.querySelector('.d-lyrics');
+            const datasetLyrics = button.dataset.lyrics || '';
+            let lyricsText = '';
+            if (lyricsNode && lyricsNode.textContent && lyricsNode.textContent.trim() !== '') {
+                lyricsText = lyricsNode.textContent;
+            } else if (datasetLyrics && datasetLyrics.trim() !== '') {
+                lyricsText = datasetLyrics;
+            }
+            modalLyrics.textContent = lyricsText || '가사 정보가 없습니다.';
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    });
+</script>
+</body>
+</html>

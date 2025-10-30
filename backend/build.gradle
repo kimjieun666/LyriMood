@@ -1,0 +1,67 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.3'
+    id 'io.spring.dependency-management' version '1.1.5'
+}
+
+group = 'com.jieun'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation platform('io.github.resilience4j:resilience4j-bom:2.2.0')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'io.github.resilience4j:resilience4j-core'
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3'
+
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'io.netty:netty-resolver-dns-native-macos'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.named('bootRun') {
+    environment.putAll(loadDotEnv())
+}
+
+Map<String, String> loadDotEnv() {
+    Map<String, String> props = new LinkedHashMap<>()
+    File envFile = project.file('.env.local')
+    if (!envFile.exists()) {
+        return props
+    }
+    envFile.eachLine { line ->
+        String trimmed = line.trim()
+        if (!trimmed.isEmpty() && !trimmed.startsWith('#')) {
+            int separator = trimmed.indexOf('=')
+            if (separator > 0) {
+                String key = trimmed.substring(0, separator).trim()
+                String value = trimmed.substring(separator + 1).trim()
+                if (!key.isEmpty()) {
+                    props.put(key, value)
+                }
+            }
+        }
+    }
+    return props
+}
