@@ -1,7 +1,7 @@
 # LyriMood – 감정 기반 음악 분석 플랫폼
 
-곡 제목과 가사를 입력하면 감정 좌표, 분위기 레이블, 태그, 장르, 어쿠스틱 정보를 추출해 주는 Spring Boot 애플리케이션입니다.  
-Google Gemini, DetectLanguage, MusicBrainz, AcousticBrainz 등을 조합하여 분석 결과를 REST API와 웹 UI(`/logs`)로 제공합니다.
+곡 제목과 가사를 입력하면 감정 좌표, 분위기 레이블, 태그, 장르, 어쿠스틱 정보를 계산해 주는 Spring Boot 기반 백엔드입니다.  
+Google Gemini, DetectLanguage, MusicBrainz, AcousticBrainz를 연동해 분석 결과를 REST API와 `/logs` 웹 UI로 노출합니다.
 
 ---
 
