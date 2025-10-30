@@ -17,6 +17,7 @@ public record MoodAnalyzeResponse(
         Double tempo,
         String mood,
         String lyrics,
+        String originalLyrics,
         List<String> highlights,
         List<ModelPredictionDto> toxicityPredictions,
         List<ModelPredictionDto> emotionPredictions

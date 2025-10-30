@@ -473,7 +473,11 @@
                 highlightList.innerHTML = '<div class="placeholder">근거가 제공되지 않았습니다.</div>';
             }
 
-            document.getElementById('lyricsBox').textContent = data.lyrics || '가사 정보를 불러오지 못했습니다.';
+                const translatedLyrics = data.lyrics || '';
+                const originalLyrics = data.originalLyrics || '';
+                document.getElementById('lyricsBox').textContent = translatedLyrics
+                    || originalLyrics
+                    || '가사 정보를 불러오지 못했습니다.';
         } catch (err) {
             result.style.display = 'none';
             placeholder.style.display = 'none';

@@ -74,27 +74,34 @@ public class DefaultMoodAnalysisService implements MoodAnalysisService {
 
     @Override
     public MoodAnalyzeResponse analyze(MoodAnalyzeRequest request) {
+        String lyrics = resolveLyrics(request, null);
+        MusicMetadata metadata = null;
         try {
-            MusicMetadata metadata = musicMetadataService.lookup(request.title(), request.artist()).orElse(null);
-            String lyrics = resolveLyrics(request, metadata);
+            metadata = musicMetadataService.lookup(request.title(), request.artist()).orElse(null);
+            lyrics = resolveLyrics(request, metadata);
+        } catch (ExternalServiceException ex) {
+            log.warn("Music metadata lookup failed: {}", ex.getMessage());
+            metadata = null;
+        }
 
-            LanguageDetectionResult languageResult = languageService.detectLanguage(lyrics);
+        LanguageDetectionResult languageResult = detectLanguageSafe(lyrics);
 
-            GeminiClient.Result analysisResult = geminiClient.analyze(
-                    request.title(),
-                    request.artist(),
-                    lyrics
-            );
+        GeminiClient.Result analysisResult = analyzeWithGeminiSafe(
+                request.title(),
+                request.artist(),
+                lyrics
+        );
 
             boolean profane = analysisResult.profane();
             SentimentScore sentimentScore = analysisResult.sentimentScore();
 
-            List<String> tagCandidates = new ArrayList<>();
-            if (analysisResult.tags() != null) {
-                tagCandidates.addAll(analysisResult.tags());
-            }
-            List<String> sentimentLabels = buildSentimentLabels(sentimentScore.valence(), sentimentScore.arousal());
-            tagCandidates.addAll(sentimentLabels);
+        List<String> tagCandidates = new ArrayList<>();
+        if (analysisResult.tags() != null) {
+            tagCandidates.addAll(analysisResult.tags());
+        }
+        List<String> sentimentLabels = buildSentimentLabels(sentimentScore.valence(), sentimentScore.arousal());
+        tagCandidates.addAll(sentimentLabels);
+        try {
             tagCandidates.addAll(tagService.suggestTags(
                     request.title(),
                     request.artist(),
@@ -104,6 +111,9 @@ public class DefaultMoodAnalysisService implements MoodAnalysisService {
                     profane,
                     languageResult.languageCode()
             ));
+        } catch (ExternalServiceException ex) {
+            log.warn("Tag service failed: {}", ex.getMessage());
+        }
 
             double roundedValence = roundThreeDecimals(sentimentScore.valence());
             double roundedArousal = roundThreeDecimals(sentimentScore.arousal());
@@ -117,77 +127,84 @@ public class DefaultMoodAnalysisService implements MoodAnalysisService {
                 tagCandidates.add(analysisResult.label());
             }
 
-            String lang = StringUtils.hasText(analysisResult.lang())
-                    ? analysisResult.lang()
-                    : languageResult.languageCode();
-            String resolvedCountry = resolveCountry(metadata, lyrics, lang);
-            if (metadata != null) {
-                tagCandidates = enrichWithMetadata(tagCandidates, metadata, resolvedCountry);
-            } else if (StringUtils.hasText(resolvedCountry)) {
-                tagCandidates = appendCountryTag(tagCandidates, resolvedCountry);
-            }
-            List<String> genres = extractGenres(metadata, tagCandidates, lang);
-            List<String> tags = normalizeTags(tagCandidates, request);
-            LocalDate releaseDate = resolveReleaseDate(metadata);
-
-            String acousticKey = null;
-            Double acousticTempo = null;
-            String acousticMood = null;
-            if (metadata != null && StringUtils.hasText(metadata.recordingId())) {
-                try {
-                    var profileOpt = acousticProfileService.fetchProfile(metadata.recordingId());
-                    if (profileOpt.isPresent()) {
-                        AcousticProfile profile = profileOpt.get();
-                        acousticKey = profile.key();
-                        acousticTempo = profile.tempo();
-                        acousticMood = profile.mood();
-                    }
-                } catch (ExternalServiceException ignored) {
-                }
-            }
-
-            List<String> highlights = buildHighlights(
-                    analysisResult,
-                    lyrics,
-                    profane,
-                    roundedValence,
-                    roundedArousal,
-                    languageResult,
-                    releaseDate,
-                    resolvedCountry,
-                    genres,
-                    acousticKey,
-                    acousticTempo,
-                    acousticMood
-            );
-
-            MoodAnalyzeResponse response = new MoodAnalyzeResponse(
-                    request.title(),
-                    request.artist(),
-                    label,
-                    lang,
-                    profane,
-                    roundedValence,
-                    roundedArousal,
-                    tags,
-                    genres,
-                    releaseDate,
-                    acousticKey,
-                    acousticTempo,
-                    acousticMood,
-                    lyrics,
-                    highlights,
-                    List.of(),
-                    List.of()
-            );
-
-            persistLog(response, lyrics, languageResult.confidence(), metadata, resolvedCountry);
-            return response;
-        } catch (ExternalServiceException ex) {
-            throw ex;
-        } catch (RuntimeException ex) {
-            throw new ExternalServiceException("Mood analysis failed", ex);
+        String lang = StringUtils.hasText(analysisResult.lang())
+                ? analysisResult.lang()
+                : languageResult.languageCode();
+        String resolvedCountry = resolveCountry(metadata, lyrics, lang);
+        if (metadata != null) {
+            tagCandidates = enrichWithMetadata(tagCandidates, metadata, resolvedCountry);
+        } else if (StringUtils.hasText(resolvedCountry)) {
+            tagCandidates = appendCountryTag(tagCandidates, resolvedCountry);
         }
+        List<String> genres = extractGenres(metadata, tagCandidates, lang);
+        List<String> tags = normalizeTags(tagCandidates, request);
+        LocalDate releaseDate = resolveReleaseDate(metadata);
+
+        String translatedLyrics = analysisResult.translatedLyrics();
+        if (StringUtils.hasText(translatedLyrics)) {
+            translatedLyrics = translatedLyrics.replace("\r\n", "\n").trim();
+        } else {
+            translatedLyrics = lyrics;
+        }
+        if (StringUtils.hasText(lyrics) && HANGUL_PATTERN.matcher(lyrics).find()) {
+            translatedLyrics = lyrics;
+        }
+
+        String acousticKey = null;
+        Double acousticTempo = null;
+        String acousticMood = null;
+        if (metadata != null && StringUtils.hasText(metadata.recordingId())) {
+            try {
+                var profileOpt = acousticProfileService.fetchProfile(metadata.recordingId());
+                if (profileOpt.isPresent()) {
+                    AcousticProfile profile = profileOpt.get();
+                    acousticKey = profile.key();
+                    acousticTempo = profile.tempo();
+                    acousticMood = profile.mood();
+                }
+            } catch (ExternalServiceException ex) {
+                log.warn("Acoustic profile lookup failed: {}", ex.getMessage());
+            }
+        }
+
+        List<String> highlights = buildHighlights(
+                analysisResult,
+                lyrics,
+                profane,
+                roundedValence,
+                roundedArousal,
+                languageResult,
+                releaseDate,
+                resolvedCountry,
+                genres,
+                acousticKey,
+                acousticTempo,
+                acousticMood
+        );
+
+        MoodAnalyzeResponse response = new MoodAnalyzeResponse(
+                request.title(),
+                request.artist(),
+                label,
+                lang,
+                profane,
+                roundedValence,
+                roundedArousal,
+                tags,
+                genres,
+                releaseDate,
+                acousticKey,
+                acousticTempo,
+                acousticMood,
+                translatedLyrics,
+                lyrics,
+                highlights,
+                List.of(),
+                List.of()
+        );
+
+        persistLog(response, lyrics, languageResult.confidence(), metadata, resolvedCountry);
+        return response;
     }
 
     private String resolveLyrics(MoodAnalyzeRequest request, MusicMetadata metadata) {
@@ -198,6 +215,50 @@ public class DefaultMoodAnalysisService implements MoodAnalysisService {
             return metadata.annotation();
         }
         return (request.title() + " " + request.artist()).trim();
+    }
+
+    private LanguageDetectionResult detectLanguageSafe(String lyrics) {
+        try {
+            return languageService.detectLanguage(lyrics);
+        } catch (ExternalServiceException ex) {
+            log.warn("Language detection failed, using heuristic fallback: {}", ex.getMessage());
+            return heuristicLanguage(lyrics);
+        }
+    }
+
+    private LanguageDetectionResult heuristicLanguage(String lyrics) {
+        if (!StringUtils.hasText(lyrics)) {
+            return new LanguageDetectionResult("und", 0.0);
+        }
+        if (HANGUL_PATTERN.matcher(lyrics).find()) {
+            return new LanguageDetectionResult("ko", 0.9);
+        }
+        if (JAPANESE_PATTERN.matcher(lyrics).find()) {
+            return new LanguageDetectionResult("ja", 0.85);
+        }
+        if (CYRILLIC_PATTERN.matcher(lyrics).find()) {
+            return new LanguageDetectionResult("ru", 0.8);
+        }
+        return new LanguageDetectionResult("und", 0.0);
+    }
+
+    private GeminiClient.Result analyzeWithGeminiSafe(String title, String artist, String lyrics) {
+        try {
+            return geminiClient.analyze(title, artist, lyrics);
+        } catch (ExternalServiceException ex) {
+            log.warn("Gemini 분석 호출이 실패하여 기본 값을 사용합니다: {}", ex.getMessage());
+            return new GeminiClient.Result(
+                    "",
+                    "neutral",
+                    false,
+                    new SentimentScore(0.5, 0.5),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    "",
+                    StringUtils.hasText(lyrics) ? lyrics : ""
+            );
+        }
     }
 
     private void persistLog(MoodAnalyzeResponse response,
@@ -228,6 +289,7 @@ public class DefaultMoodAnalysisService implements MoodAnalysisService {
                     response.tempo(),
                     response.mood(),
                     response.lyrics(),
+                    response.originalLyrics(),
                     response.highlights(),
                     digestLyrics(lyrics),
                     OffsetDateTime.now()

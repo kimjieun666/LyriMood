@@ -63,6 +63,7 @@ public class LogController {
                 copyOfNullable(log.getTags()),
                 copyOfNullable(log.getGenres()),
                 log.getLyrics(),
+                log.getOriginalLyrics(),
                 copyOfNullable(log.getHighlights()),
                 log.getAcousticKey(),
                 log.getAcousticTempo(),

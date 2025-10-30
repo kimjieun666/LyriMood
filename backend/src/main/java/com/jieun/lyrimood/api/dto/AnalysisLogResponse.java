@@ -20,6 +20,7 @@ public record AnalysisLogResponse(
         List<String> tags,
         List<String> genres,
         String lyrics,
+        String originalLyrics,
         List<String> highlights,
         String acousticKey,
         Double acousticTempo,

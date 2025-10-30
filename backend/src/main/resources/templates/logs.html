@@ -488,7 +488,8 @@
                                       data-profane=${log.profane ? 'Explicit' : 'Clean'},
                                       data-genres=${log.genres != null && !log.genres.isEmpty() ? T(java.lang.String).join(', ', log.genres) : ''},
                                       data-highlights=${log.highlights != null && !log.highlights.isEmpty() ? T(java.lang.String).join('\n', log.highlights) : ''},
-                                      data-lyrics=${log.lyrics != null ? log.lyrics : ''}">
+                                      data-lyrics=${log.lyrics != null ? log.lyrics : ''},
+                                      data-original=${log.originalLyrics != null ? log.originalLyrics : ''}">
                         자세히 보기
                     </button>
                 </div>
@@ -774,11 +775,14 @@
 
             const lyricsNode = detailNode?.querySelector('.d-lyrics');
             const datasetLyrics = button.dataset.lyrics || '';
+            const datasetOriginal = button.dataset.original || '';
             let lyricsText = '';
             if (lyricsNode && lyricsNode.textContent && lyricsNode.textContent.trim() !== '') {
                 lyricsText = lyricsNode.textContent;
             } else if (datasetLyrics && datasetLyrics.trim() !== '') {
                 lyricsText = datasetLyrics;
+            } else if (datasetOriginal && datasetOriginal.trim() !== '') {
+                lyricsText = datasetOriginal;
             }
             modalLyrics.textContent = lyricsText || '가사 정보가 없습니다.';
 

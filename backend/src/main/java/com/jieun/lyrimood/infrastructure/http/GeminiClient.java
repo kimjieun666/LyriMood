@@ -81,15 +81,16 @@ public class GeminiClient {
                 당신은 음악의 감정과 분위기를 분석하는 전문가입니다. 아래 가사를 한국어로 분석하고, **JSON 한 줄**만 반환하세요.
                 JSON은 반드시 다음 필드를 포함한 1줄(minified)이어야 합니다.
                 {
-                  "label": string,          // 간결한 한국어 감정 레이블
-                  "valence": number,        // 0.0 ~ 1.0
-                  "arousal": number,        // 0.0 ~ 1.0
-                  "profane": boolean,       // 비속어 포함 여부
-                  "tags": array,            // 소문자 영어 태그 최대 6개
-                  "positiveEvidence": array,// 밝은 분위기를 보여주는 한국어 표현 최대 3개
-                  "negativeEvidence": array,// 어두운 분위기를 보여주는 한국어 표현 최대 3개
-                  "summary": string,        // 120자 이하 한국어 요약
-                  "language": string        // ISO 639-1 언어 코드
+                  "label": string,           // 간결한 한국어 감정 레이블
+                  "valence": number,         // 0.0 ~ 1.0
+                  "arousal": number,         // 0.0 ~ 1.0
+                  "profane": boolean,        // 비속어 포함 여부
+                  "tags": array,             // 소문자 영어 태그 최대 6개
+                  "positiveEvidence": array, // 밝은 분위기를 보여주는 한국어 표현 최대 3개
+                  "negativeEvidence": array, // 어두운 분위기를 보여주는 한국어 표현 최대 3개
+                  "summary": string,         // 120자 이하 한국어 요약
+                  "language": string,        // ISO 639-1 언어 코드
+                  "translatedLyrics": string // 가사를 자연스러운 한국어로 번역, 줄바꿈은 \\n 사용, 4000자 이하
                 }
                 값이 없으면 valence/arousal은 0.5, 배열은 []로 두고 JSON 이외의 텍스트는 출력하지 마세요.
 
@@ -129,6 +130,7 @@ public class GeminiClient {
             boolean profane = data.path("profane").asBoolean(false);
             String summary = data.path("summary").asText("");
             String lang = data.path("language").asText("");
+            String translatedLyrics = data.path("translatedLyrics").asText("");
 
             List<String> tags = readArray(data.path("tags"));
             List<String> positives = readArray(data.path("positiveEvidence"));
@@ -143,7 +145,8 @@ public class GeminiClient {
                             tags,
                             positives,
                             negatives,
-                            summary
+                            summary,
+                            translatedLyrics
                     )
             );
         } catch (Exception ex) {
@@ -193,6 +196,7 @@ public class GeminiClient {
                 List.of(),
                 List.of(),
                 List.of(),
+                "",
                 ""
         );
     }
@@ -212,7 +216,8 @@ public class GeminiClient {
             List<String> tags,
             List<String> positiveEvidence,
             List<String> negativeEvidence,
-            String summary
+            String summary,
+            String translatedLyrics
     ) {
     }
 }

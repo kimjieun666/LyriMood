@@ -44,6 +44,7 @@ class MoodAnalysisControllerTest {
                 "C Major",
                 128.0,
                 "happy",
+                "우리는 밝은 햇빛 속에서 춤춰요",
                 "We dance in the bright daylight",
                 List.of("Positive keywords: bright"),
                 List.of(new ModelPredictionDto("toxic", 0.15)),
@@ -68,6 +69,8 @@ class MoodAnalysisControllerTest {
                 .andExpect(jsonPath("$.key").value("C Major"))
                 .andExpect(jsonPath("$.tempo").value(128.0))
                 .andExpect(jsonPath("$.mood").value("happy"))
+                .andExpect(jsonPath("$.lyrics").value("우리는 밝은 햇빛 속에서 춤춰요"))
+                .andExpect(jsonPath("$.originalLyrics").value("We dance in the bright daylight"))
                 .andExpect(jsonPath("$.toxicityPredictions[0].label").value("toxic"));
     }
 

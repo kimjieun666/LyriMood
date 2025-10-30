@@ -25,7 +25,7 @@ public class AnalysisLog {
 
     private String title;
     private String artist;
-    @Column(length = 16)
+    @Column(length = 48)
     private String label;
     @Column(length = 8)
     private String lang;
@@ -44,6 +44,10 @@ public class AnalysisLog {
     @Lob
     @Column(columnDefinition = "TEXT")
     private String lyrics;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String originalLyrics;
 
     @ElementCollection
     @CollectionTable(name = "analysis_log_genres", joinColumns = @JoinColumn(name = "analysis_log_id"))
@@ -92,6 +96,7 @@ public class AnalysisLog {
                        Double acousticTempo,
                        String acousticMood,
                        String lyrics,
+                       String originalLyrics,
                        List<String> highlights,
                        String lyricsDigest,
                        OffsetDateTime createdAt) {
@@ -119,6 +124,7 @@ public class AnalysisLog {
             this.highlights = new ArrayList<>(highlights);
         }
         this.lyricsDigest = lyricsDigest;
+        this.originalLyrics = originalLyrics;
         this.createdAt = createdAt;
     }
 
@@ -188,6 +194,10 @@ public class AnalysisLog {
 
     public String getLyrics() {
         return lyrics;
+    }
+
+    public String getOriginalLyrics() {
+        return originalLyrics;
     }
 
     public List<String> getGenres() {
